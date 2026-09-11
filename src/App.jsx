@@ -1,10 +1,9 @@
-import { useRef, useEffect, useState, useCallback } from "react";
-import "./App.css"
+import React, { useRef, useEffect, useState, useCallback } from "react";
 
 // ---------- Constants ----------
 const CANVAS_W = 800;
-const CANVAS_H = 450;
-const GROUND_Y = 380;
+const CANVAS_H = 640;
+const GROUND_Y = 560;
 const GRAVITY = 0.55;
 const JUMP_VELOCITY = -11.5;
 const MOVE_SPEED = 4.2;
@@ -40,7 +39,7 @@ const ALL_VOCAB = [...ANIMAL_VOCAB, ...COLOR_VOCAB, ...NUMBER_VOCAB];
 
 const mkCoin = (x, y, emoji, word) => ({ x, y, emoji, word, trap: false, collected: false });
 const mkTrap = (x, y, emoji, word) => ({ x, y, emoji, word, trap: true, collected: false });
-const mkEnemy = (x, minX, maxX, word) => ({ x, minX, maxX, y: 350, dir: 1, alive: true, word, w: 30, h: 30 });
+const mkEnemy = (x, minX, maxX, word) => ({ x, minX, maxX, y: 530, dir: 1, alive: true, word, w: 30, h: 30 });
 
 // Procedurally build one of the 9 levels. Later levels in a world get a pit,
 // more trap coins, and more enemies, so difficulty ramps up like real Mario worlds.
@@ -52,13 +51,13 @@ function buildLevel(worldIdx, levelIdx) {
   const pits = levelIdx > 0 ? [{ start: 900, end: 900 + 80 + levelIdx * 20 }] : [];
 
   const platforms = [
-    { x: 300, y: 300 - levelIdx * 10, w: 110, h: 20 },
-    { x: 780, y: 255 - levelIdx * 15, w: 100, h: 20 },
-    { x: 1280, y: 290 - levelIdx * 10, w: 120, h: 20 },
+    { x: 300, y: 480 - levelIdx * 10, w: 110, h: 20 },
+    { x: 780, y: 435 - levelIdx * 15, w: 100, h: 20 },
+    { x: 1280, y: 470 - levelIdx * 10, w: 120, h: 20 },
   ];
 
   const coins = [
-    mkCoin(200, 350, vocab[0].emoji, vocab[0].word),
+    mkCoin(200, 530, vocab[0].emoji, vocab[0].word),
     mkCoin(platforms[1].x + 30, platforms[1].y - 25, vocab[1].emoji, vocab[1].word),
     mkCoin(platforms[2].x + 40, platforms[2].y - 25, vocab[2].emoji, vocab[2].word),
   ];
@@ -67,7 +66,7 @@ function buildLevel(worldIdx, levelIdx) {
   for (let i = 0; i <= levelIdx; i++) {
     const pic = vocab[i % vocab.length];
     const wrongLabel = vocab[(i + 1) % vocab.length].word;
-    traps.push(mkTrap(520 + i * 420, 350, pic.emoji, wrongLabel));
+    traps.push(mkTrap(520 + i * 420, 530, pic.emoji, wrongLabel));
   }
 
   const enemies = [];
@@ -359,7 +358,7 @@ export default function WordJumpKingdom() {
       for (let i = 0; i < 6; i++) {
         const hx = ((i * 260 - cam * 0.3) % (CANVAS_W + 260)) - 130;
         ctx.beginPath();
-        ctx.arc(hx, 340, 70, Math.PI, 0);
+        ctx.arc(hx, 520, 70, Math.PI, 0);
         ctx.fill();
       }
 
