@@ -1,5 +1,6 @@
 import { useRef, useEffect, useState, useCallback } from "react";
 import "./App.css"
+
 // ---------- Constants ----------
 const CANVAS_W = 800;
 const CANVAS_H = 640;
@@ -390,20 +391,20 @@ export default function WordJumpKingdom() {
         if (item.x < cam - 50 || item.x > cam + CANVAS_W + 50) continue;
         const bob = Math.sin(Date.now() / 300 + item.x) * 3;
         ctx.beginPath();
-        ctx.arc(item.x, item.y + bob, 19, 0, Math.PI * 2);
+        ctx.arc(item.x, item.y + bob, 24, 0, Math.PI * 2);
         ctx.fillStyle = "rgba(255,255,255,0.85)";
         ctx.fill();
-        ctx.font = "24px system-ui, 'Segoe UI Emoji', 'Apple Color Emoji', sans-serif";
+        ctx.font = "34px system-ui, 'Segoe UI Emoji', 'Apple Color Emoji', sans-serif";
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
         ctx.fillText(item.emoji, item.x, item.y + bob + 1);
-        ctx.font = "bold 16px system-ui, sans-serif";
+        ctx.font = "bold 26px system-ui, sans-serif";
         ctx.textBaseline = "alphabetic";
-        ctx.lineWidth = 3;
-        ctx.strokeStyle = "rgba(255,255,255,0.9)";
-        ctx.strokeText(item.word, item.x, item.y + bob + 34);
+        ctx.lineWidth = 5;
+        ctx.strokeStyle = "rgba(255,255,255,0.95)";
+        ctx.strokeText(item.word, item.x, item.y + bob + 44);
         ctx.fillStyle = "#2B2333";
-        ctx.fillText(item.word, item.x, item.y + bob + 34);
+        ctx.fillText(item.word, item.x, item.y + bob + 44);
       }
 
       for (const en of lvl.enemies) {
@@ -415,10 +416,10 @@ export default function WordJumpKingdom() {
         ctx.arc(en.x + 10, en.y + 12, 4, 0, Math.PI * 2);
         ctx.arc(en.x + 20, en.y + 12, 4, 0, Math.PI * 2);
         ctx.fill();
-        ctx.font = "bold 15px system-ui, sans-serif";
+        ctx.font = "bold 22px system-ui, sans-serif";
         ctx.textAlign = "center";
-        ctx.lineWidth = 3;
-        ctx.strokeStyle = "rgba(255,255,255,0.9)";
+        ctx.lineWidth = 5;
+        ctx.strokeStyle = "rgba(255,255,255,0.95)";
         ctx.strokeText(en.word, en.x + en.w / 2, en.y - 8);
         ctx.fillStyle = "#2B2333";
         ctx.fillText(en.word, en.x + en.w / 2, en.y - 8);
@@ -627,7 +628,7 @@ export default function WordJumpKingdom() {
         {status === "quiz" && quiz && (
           <div style={overlayStyle("rgba(43,35,51,0.9)")}>
             <p style={{ color: "#fff", fontWeight: 700, fontSize: 14, margin: 0 }}>🏰 Castle Gate</p>
-            <div style={{ fontSize: 48 }}>{quiz.emoji}</div>
+            <div style={{ fontSize: 64 }}>{quiz.emoji}</div>
             <p style={{ color: "#fff", fontWeight: 700, margin: 0 }}>Which word matches this picture?</p>
             <div style={{ display: "flex", flexWrap: "wrap", gap: 8, justifyContent: "center" }}>
               {quiz.options.map((opt) => (
