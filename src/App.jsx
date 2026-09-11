@@ -1,5 +1,6 @@
 import { useRef, useEffect, useState, useCallback } from "react";
 import "./App.css"
+
 // ---------- Constants ----------
 const CANVAS_W = 800;
 const CANVAS_H = 450;
@@ -494,60 +495,88 @@ export default function WordJumpKingdom() {
 
   const { world: curW, level: curL } = currentPos;
 
+  // Reusable inline style objects (no CSS framework required)
+  const overlayStyle = (bg) => ({
+    position: "fixed", inset: 0, zIndex: 1000, display: "flex", flexDirection: "column",
+    alignItems: "center", justifyContent: "center", gap: 12, textAlign: "center",
+    padding: "24px", background: bg, boxSizing: "border-box",
+    overflowY: "auto", maxHeight: "100vh",
+  });
+  const pillStyle = (bg, color, border) => ({
+    padding: "4px 12px", borderRadius: 999, fontSize: 14, fontWeight: 700, background: bg, color, border,
+  });
+  const primaryBtnStyle = {
+    padding: "12px 24px", borderRadius: 999, fontWeight: 700, color: "#fff",
+    background: "#3AAFA9", border: "3px solid #2B2333", boxShadow: "4px 4px 0 rgba(0,0,0,0.3)", cursor: "pointer",
+  };
+  const secondaryBtnStyle = {
+    padding: "12px 24px", borderRadius: 999, fontWeight: 700, color: "#2B2333",
+    background: "#FFF3D6", border: "3px solid #2B2333", cursor: "pointer",
+  };
+  const optionBtnStyle = {
+    padding: "8px 20px", borderRadius: 999, fontWeight: 700, color: "#2B2333",
+    background: "#FFF3D6", border: "3px solid #2B2333", cursor: "pointer",
+  };
+  const dpadBtnStyle = {
+    width: 56, height: 56, borderRadius: "50%", fontWeight: 700, fontSize: 20,
+    background: "#FFF3D6", border: "3px solid #2B2333", touchAction: "none",
+    WebkitTapHighlightColor: "transparent", userSelect: "none", cursor: "pointer",
+  };
+  const jumpBtnStyle = {
+    width: 80, height: 56, borderRadius: 999, fontWeight: 700, color: "#fff",
+    background: "#3AAFA9", border: "3px solid #2B2333", touchAction: "none",
+    WebkitTapHighlightColor: "transparent", userSelect: "none", cursor: "pointer",
+  };
+
   return (
-    <div className="w-full max-w-3xl mx-auto" style={{ fontFamily: "system-ui, -apple-system, 'Segoe UI', sans-serif" }}>
-      <div className="mb-3 text-center">
-        <h1 className="text-3xl font-extrabold" style={{ color: "#2B2333" }}>Word Jump Kingdom</h1>
-        <p className="text-sm" style={{ color: "#5B5566" }}>3 worlds · 9 levels · a castle quiz at the end of every one</p>
+    <div style={{ width: "100%", maxWidth: 768, margin: "0 auto", fontFamily: "system-ui, -apple-system, 'Segoe UI', sans-serif" }}>
+      <div style={{ marginBottom: 12, textAlign: "center" }}>
+        <h1 style={{ fontSize: 28, fontWeight: 800, color: "#2B2333", margin: 0 }}>Word Jump Kingdom</h1>
+        <p style={{ fontSize: 14, color: "#5B5566", margin: "4px 0 0" }}>3 worlds · 9 levels · a castle quiz at the end of every one</p>
       </div>
 
       <div
-        className="relative mx-auto rounded-2xl overflow-hidden"
-        style={{ width: "100%", maxWidth: CANVAS_W, aspectRatio: `${CANVAS_W}/${CANVAS_H}`, border: "6px solid #2B2333", boxShadow: "8px 8px 0 rgba(43,35,51,0.25)", touchAction: "none" }}
+        style={{ position: "relative", width: "100%", maxWidth: CANVAS_W, margin: "0 auto", borderRadius: 16, overflow: "hidden", aspectRatio: `${CANVAS_W}/${CANVAS_H}`, border: "6px solid #2B2333", boxShadow: "8px 8px 0 rgba(43,35,51,0.25)", touchAction: "none" }}
       >
         <canvas ref={canvasRef} width={CANVAS_W} height={CANVAS_H} style={{ width: "100%", height: "100%", display: "block" }} />
 
         {(status === "playing" || status === "quiz") && (
-          <div className="absolute top-2 left-2 right-2 flex items-center justify-between pointer-events-none">
-            <div className="flex gap-2">
-              <div className="px-3 py-1 rounded-full text-sm font-bold" style={{ background: "#FFF3D6", color: "#2B2333", border: "2px solid #2B2333" }}>
-                Score: {score}
-              </div>
-              <div className="px-3 py-1 rounded-full text-sm font-bold" style={{ background: "#FFF3D6", color: "#2B2333", border: "2px solid #2B2333" }}>
+          <div style={{ position: "absolute", top: 8, left: 8, right: 8, display: "flex", alignItems: "center", justifyContent: "space-between", pointerEvents: "none" }}>
+            <div style={{ display: "flex", gap: 8 }}>
+              <div style={pillStyle("#FFF3D6", "#2B2333", "2px solid #2B2333")}>Score: {score}</div>
+              <div style={pillStyle("#FFF3D6", "#2B2333", "2px solid #2B2333")}>
                 {"❤️".repeat(Math.max(lives, 0))}{"🖤".repeat(Math.max(3 - lives, 0))}
               </div>
             </div>
-            <div className="px-3 py-1 rounded-full text-sm font-bold" style={{ background: "#FFF3D6", color: "#2B2333", border: "2px solid #2B2333" }}>
+            <div style={pillStyle("#FFF3D6", "#2B2333", "2px solid #2B2333")}>
               {WORLD_THEMES[curW].name} {curW + 1}-{curL + 1}
             </div>
           </div>
         )}
 
         {toast && status !== "start" && status !== "map" && (
-          <div className="absolute top-14 left-1/2 -translate-x-1/2 px-4 py-2 rounded-xl text-sm font-bold text-center" style={{ background: "#2B2333", color: "#FFF3D6" }}>
+          <div style={{ position: "absolute", top: 56, left: "50%", transform: "translateX(-50%)", padding: "8px 16px", borderRadius: 12, fontSize: 14, fontWeight: 700, textAlign: "center", background: "#2B2333", color: "#FFF3D6", whiteSpace: "nowrap" }}>
             {toast}
           </div>
         )}
 
         {status === "start" && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 text-center px-6" style={{ background: "rgba(43,35,51,0.85)" }}>
-            <p className="text-2xl">🏃‍♂️🐱🟥3️⃣🏰</p>
-            <p className="text-white font-bold text-lg">3 worlds, 3 levels each, and a castle quiz to finish every level!</p>
-            <p className="text-white text-sm opacity-80">Read before you grab a coin — some show the wrong word for the picture.<br />Grab a wrong one and you lose a heart. Lose all 3 and it's game over.</p>
-            <p className="text-white text-sm opacity-80">Arrow keys / A-D to move · Space or Up to jump<br />(or use the buttons below on a touch screen)</p>
-            <button onClick={startGame} className="px-6 py-3 rounded-full font-bold text-white" style={{ background: "#3AAFA9", border: "3px solid #2B2333", boxShadow: "4px 4px 0 rgba(0,0,0,0.3)" }}>
-              Start playing
-            </button>
+          <div style={overlayStyle("rgba(43,35,51,0.85)")}>
+            <p style={{ fontSize: 24, margin: 0 }}>🏃‍♂️🐱🟥3️⃣🏰</p>
+            <p style={{ color: "#fff", fontWeight: 700, fontSize: 18, margin: 0 }}>3 worlds, 3 levels each, and a castle quiz to finish every level!</p>
+            <p style={{ color: "#fff", fontSize: 14, opacity: 0.8, margin: 0 }}>Read before you grab a coin — some show the wrong word for the picture.<br />Grab a wrong one and you lose a heart. Lose all 3 and it's game over.</p>
+            <p style={{ color: "#fff", fontSize: 14, opacity: 0.8, margin: 0 }}>Arrow keys / A-D to move · Space or Up to jump<br />(or use the buttons below on a touch screen)</p>
+            <button onClick={startGame} style={primaryBtnStyle}>Start playing</button>
           </div>
         )}
 
         {status === "map" && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 px-6 overflow-y-auto py-6" style={{ background: "rgba(43,35,51,0.92)" }}>
-            <p className="text-white font-extrabold text-xl">World Map</p>
+          <div style={{ ...overlayStyle("rgba(43,35,51,0.92)"), overflowY: "auto", padding: "24px" }}>
+            <p style={{ color: "#fff", fontWeight: 800, fontSize: 20, margin: 0 }}>World Map</p>
             {WORLD_THEMES.map((w, wi) => (
-              <div key={w.name} className="flex flex-col items-center gap-2">
-                <p className="text-white font-bold text-sm">{w.name}</p>
-                <div className="flex gap-3">
+              <div key={w.name} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
+                <p style={{ color: "#fff", fontWeight: 700, fontSize: 14, margin: 0 }}>{w.name}</p>
+                <div style={{ display: "flex", gap: 12 }}>
                   {[0, 1, 2].map((li) => {
                     const key = levelKey(wi, li);
                     const done = completed.includes(key);
@@ -557,12 +586,12 @@ export default function WordJumpKingdom() {
                         key={key}
                         disabled={!unlocked}
                         onClick={() => loadLevel(wi, li)}
-                        className="w-14 h-14 rounded-full font-bold flex items-center justify-center"
                         style={{
+                          width: 56, height: 56, borderRadius: "50%", fontWeight: 700,
+                          display: "flex", alignItems: "center", justifyContent: "center",
                           background: done ? "#F2C744" : unlocked ? "#FFF3D6" : "#5B5566",
-                          color: "#2B2333",
-                          border: "3px solid #2B2333",
-                          opacity: unlocked ? 1 : 0.6,
+                          color: "#2B2333", border: "3px solid #2B2333",
+                          opacity: unlocked ? 1 : 0.6, cursor: unlocked ? "pointer" : "not-allowed",
                         }}
                       >
                         {done ? "⭐" : unlocked ? `${wi + 1}-${li + 1}` : "🔒"}
@@ -572,90 +601,75 @@ export default function WordJumpKingdom() {
                 </div>
               </div>
             ))}
-            <p className="text-white text-sm opacity-80 mt-2">Score so far: {score}</p>
+            <p style={{ color: "#fff", fontSize: 14, opacity: 0.8, marginTop: 8 }}>Score so far: {score}</p>
           </div>
         )}
 
         {status === "quiz" && quiz && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 text-center px-6" style={{ background: "rgba(43,35,51,0.9)" }}>
-            <p className="text-white font-bold text-sm">🏰 Castle Gate</p>
-            <div className="text-5xl">{quiz.emoji}</div>
-            <p className="text-white font-bold">Which word matches this picture?</p>
-            <div className="flex flex-wrap gap-2 justify-center">
+          <div style={overlayStyle("rgba(43,35,51,0.9)")}>
+            <p style={{ color: "#fff", fontWeight: 700, fontSize: 14, margin: 0 }}>🏰 Castle Gate</p>
+            <div style={{ fontSize: 48 }}>{quiz.emoji}</div>
+            <p style={{ color: "#fff", fontWeight: 700, margin: 0 }}>Which word matches this picture?</p>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 8, justifyContent: "center" }}>
               {quiz.options.map((opt) => (
-                <button key={opt} onClick={() => answerQuiz(opt)} className="px-5 py-2 rounded-full font-bold" style={{ background: "#FFF3D6", color: "#2B2333", border: "3px solid #2B2333" }}>
-                  {opt}
-                </button>
+                <button key={opt} onClick={() => answerQuiz(opt)} style={optionBtnStyle}>{opt}</button>
               ))}
             </div>
-            {quizFeedback && <p className="text-white text-sm">{quizFeedback}</p>}
+            {quizFeedback && <p style={{ color: "#fff", fontSize: 14, margin: 0 }}>{quizFeedback}</p>}
           </div>
         )}
 
         {status === "levelComplete" && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 text-center px-6" style={{ background: "rgba(43,35,51,0.92)" }}>
-            <p className="text-3xl">🎉</p>
-            <p className="text-white font-extrabold text-xl">Level {curW + 1}-{curL + 1} complete!</p>
-            <p className="text-white">Score: {score}</p>
-            <button onClick={backToMap} className="px-6 py-3 rounded-full font-bold text-white" style={{ background: "#3AAFA9", border: "3px solid #2B2333", boxShadow: "4px 4px 0 rgba(0,0,0,0.3)" }}>
-              Back to map
-            </button>
+          <div style={overlayStyle("rgba(43,35,51,0.92)")}>
+            <p style={{ fontSize: 32, margin: 0 }}>🎉</p>
+            <p style={{ color: "#fff", fontWeight: 800, fontSize: 20, margin: 0 }}>Level {curW + 1}-{curL + 1} complete!</p>
+            <p style={{ color: "#fff", margin: 0 }}>Score: {score}</p>
+            <button onClick={backToMap} style={primaryBtnStyle}>Back to map</button>
           </div>
         )}
 
         {status === "worldComplete" && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 text-center px-6" style={{ background: "rgba(43,35,51,0.92)" }}>
-            <p className="text-3xl">🏆</p>
-            <p className="text-white font-extrabold text-xl">{WORLD_THEMES[curW].name} complete!</p>
-            <p className="text-white">Score: {score}</p>
-            <button onClick={backToMap} className="px-6 py-3 rounded-full font-bold text-white" style={{ background: "#3AAFA9", border: "3px solid #2B2333", boxShadow: "4px 4px 0 rgba(0,0,0,0.3)" }}>
-              Continue to next world
-            </button>
+          <div style={overlayStyle("rgba(43,35,51,0.92)")}>
+            <p style={{ fontSize: 32, margin: 0 }}>🏆</p>
+            <p style={{ color: "#fff", fontWeight: 800, fontSize: 20, margin: 0 }}>{WORLD_THEMES[curW].name} complete!</p>
+            <p style={{ color: "#fff", margin: 0 }}>Score: {score}</p>
+            <button onClick={backToMap} style={primaryBtnStyle}>Continue to next world</button>
           </div>
         )}
 
         {status === "gameComplete" && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 text-center px-6" style={{ background: "rgba(43,35,51,0.94)" }}>
-            <p className="text-3xl">👑</p>
-            <p className="text-white font-extrabold text-xl">You beat all 3 worlds!</p>
-            <p className="text-white">Final score: {score}</p>
-            <p className="text-white text-sm max-w-sm">Words learned ({wordsLearned.length}): {wordsLearned.join(", ")}</p>
-            <button onClick={startGame} className="px-6 py-3 rounded-full font-bold text-white" style={{ background: "#3AAFA9", border: "3px solid #2B2333", boxShadow: "4px 4px 0 rgba(0,0,0,0.3)" }}>
-              Play again
-            </button>
+          <div style={overlayStyle("rgba(43,35,51,0.94)")}>
+            <p style={{ fontSize: 32, margin: 0 }}>👑</p>
+            <p style={{ color: "#fff", fontWeight: 800, fontSize: 20, margin: 0 }}>You beat all 3 worlds!</p>
+            <p style={{ color: "#fff", margin: 0 }}>Final score: {score}</p>
+            <p style={{ color: "#fff", fontSize: 14, maxWidth: 380, margin: 0 }}>Words learned ({wordsLearned.length}): {wordsLearned.join(", ")}</p>
+            <button onClick={startGame} style={primaryBtnStyle}>Play again</button>
           </div>
         )}
 
         {status === "lost" && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 text-center px-6" style={{ background: "rgba(43,35,51,0.92)" }}>
-            <p className="text-3xl">💫</p>
-            <p className="text-white font-extrabold text-xl">Out of hearts!</p>
-            <p className="text-white">Level {curW + 1}-{curL + 1} · Score: {score}</p>
-            <div className="flex gap-2">
-              <button onClick={retryLevel} className="px-6 py-3 rounded-full font-bold text-white" style={{ background: "#3AAFA9", border: "3px solid #2B2333", boxShadow: "4px 4px 0 rgba(0,0,0,0.3)" }}>
-                Retry level
-              </button>
-              <button onClick={backToMap} className="px-6 py-3 rounded-full font-bold" style={{ background: "#FFF3D6", color: "#2B2333", border: "3px solid #2B2333" }}>
-                World map
-              </button>
+          <div style={overlayStyle("rgba(43,35,51,0.92)")}>
+            <p style={{ fontSize: 32, margin: 0 }}>💫</p>
+            <p style={{ color: "#fff", fontWeight: 800, fontSize: 20, margin: 0 }}>Out of hearts!</p>
+            <p style={{ color: "#fff", margin: 0 }}>Level {curW + 1}-{curL + 1} · Score: {score}</p>
+            <div style={{ display: "flex", gap: 8 }}>
+              <button onClick={retryLevel} style={primaryBtnStyle}>Retry level</button>
+              <button onClick={backToMap} style={secondaryBtnStyle}>World map</button>
             </div>
           </div>
         )}
       </div>
 
-      <div className="flex items-center justify-between mt-4 max-w-3xl mx-auto px-2">
-        <div className="flex gap-2">
-          <button onPointerDown={press("left")} onPointerUp={release("left")} onPointerLeave={release("left")} onPointerCancel={release("left")}
-            className="w-14 h-14 rounded-full font-bold text-xl select-none" style={{ background: "#FFF3D6", border: "3px solid #2B2333", touchAction: "none", WebkitTapHighlightColor: "transparent" }}>◀</button>
-          <button onPointerDown={press("right")} onPointerUp={release("right")} onPointerLeave={release("right")} onPointerCancel={release("right")}
-            className="w-14 h-14 rounded-full font-bold text-xl select-none" style={{ background: "#FFF3D6", border: "3px solid #2B2333", touchAction: "none", WebkitTapHighlightColor: "transparent" }}>▶</button>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 16, maxWidth: 768, marginLeft: "auto", marginRight: "auto", padding: "0 8px" }}>
+        <div style={{ display: "flex", gap: 8 }}>
+          <button onPointerDown={press("left")} onPointerUp={release("left")} onPointerLeave={release("left")} onPointerCancel={release("left")} style={dpadBtnStyle}>◀</button>
+          <button onPointerDown={press("right")} onPointerUp={release("right")} onPointerLeave={release("right")} onPointerCancel={release("right")} style={dpadBtnStyle}>▶</button>
         </div>
-        <button onPointerDown={press("jump")} onPointerUp={release("jump")} onPointerLeave={release("jump")} onPointerCancel={release("jump")}
-          className="w-20 h-14 rounded-full font-bold select-none" style={{ background: "#3AAFA9", color: "#fff", border: "3px solid #2B2333", touchAction: "none", WebkitTapHighlightColor: "transparent" }}>JUMP</button>
+        <button onPointerDown={press("jump")} onPointerUp={release("jump")} onPointerLeave={release("jump")} onPointerCancel={release("jump")} style={jumpBtnStyle}>JUMP</button>
       </div>
 
       {wordsLearned.length > 0 && status !== "start" && status !== "map" && (
-        <div className="mt-3 text-center text-sm" style={{ color: "#5B5566" }}>
+        <div style={{ marginTop: 12, textAlign: "center", fontSize: 14, color: "#5B5566" }}>
           Words collected so far: {wordsLearned.join(", ")}
         </div>
       )}
