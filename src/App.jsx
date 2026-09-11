@@ -10,8 +10,8 @@ const JUMP_VELOCITY = -11.5;
 const MOVE_SPEED = 4.2;
 const FRICTION = 0.82;
 const MAX_FALL = 14;
-const PLAYER_W = 32;
-const PLAYER_H = 40;
+const PLAYER_W = 48;
+const PLAYER_H = 62;
 const LEVELS_PER_WORLD = 3;
 
 const WORLD_THEMES = [
@@ -444,24 +444,38 @@ export default function WordJumpKingdom() {
         ctx.save();
         ctx.translate(px + PLAYER_W / 2, py + PLAYER_H / 2);
         ctx.scale(p.facing, 1);
+        // legs
         ctx.fillStyle = "#3A2E39";
-        const legSwing = p.onGround && Math.abs(p.vx) > 0.4 ? Math.sin(p.anim * 2) * 6 : 0;
-        ctx.fillRect(-10, 10 + legSwing * 0.2, 8, 10);
-        ctx.fillRect(2, 10 - legSwing * 0.2, 8, 10);
-        drawRoundedRect(-14, -8, 28, 22, 8, "#FF6B4A");
+        const legSwing = p.onGround && Math.abs(p.vx) > 0.4 ? Math.sin(p.anim * 2) * 8 : 0;
+        ctx.fillRect(-16, 14 + legSwing * 0.2, 13, 17);
+        ctx.fillRect(3, 14 - legSwing * 0.2, 13, 17);
+        // small body (chibi = big head, small body)
+        drawRoundedRect(-22, -13, 45, 34, 13, "#FF6B4A");
+        // stubby arms
+        ctx.fillStyle = "#FF6B4A";
+        drawRoundedRect(-27, -6, 8, 16, 4, "#FF6B4A");
+        drawRoundedRect(19, -6, 8, 16, 4, "#FF6B4A");
+        // big head
         ctx.beginPath();
-        ctx.arc(4, -18, 12, 0, Math.PI * 2);
+        ctx.arc(6, -29, 19, 0, Math.PI * 2);
         ctx.fillStyle = "#FFD8A8";
         ctx.fill();
+        // blush
+        ctx.fillStyle = "rgba(255,140,140,0.5)";
+        ctx.beginPath();
+        ctx.arc(-2, -23, 3.5, 0, Math.PI * 2);
+        ctx.fill();
+        // eye
         ctx.fillStyle = "#2B2333";
         ctx.beginPath();
-        ctx.arc(9, -19, 2, 0, Math.PI * 2);
+        ctx.arc(15, -30, 3, 0, Math.PI * 2);
         ctx.fill();
+        // cap
         ctx.fillStyle = "#3AAFA9";
         ctx.beginPath();
-        ctx.arc(4, -22, 12, Math.PI, 0);
+        ctx.arc(6, -35, 19, Math.PI, 0);
         ctx.fill();
-        ctx.fillRect(4, -26, 14, 6);
+        ctx.fillRect(6, -42, 23, 10);
         ctx.restore();
       }
 
