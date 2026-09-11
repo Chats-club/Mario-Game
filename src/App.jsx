@@ -1,5 +1,5 @@
-import React, { useRef, useEffect, useState, useCallback } from "react";
-
+import { useRef, useEffect, useState, useCallback } from "react";
+import "./App.css"
 // ---------- Constants ----------
 const CANVAS_W = 800;
 const CANVAS_H = 640;
@@ -390,17 +390,20 @@ export default function WordJumpKingdom() {
         if (item.x < cam - 50 || item.x > cam + CANVAS_W + 50) continue;
         const bob = Math.sin(Date.now() / 300 + item.x) * 3;
         ctx.beginPath();
-        ctx.arc(item.x, item.y + bob, 16, 0, Math.PI * 2);
+        ctx.arc(item.x, item.y + bob, 19, 0, Math.PI * 2);
         ctx.fillStyle = "rgba(255,255,255,0.85)";
         ctx.fill();
-        ctx.font = "20px system-ui, 'Segoe UI Emoji', 'Apple Color Emoji', sans-serif";
+        ctx.font = "24px system-ui, 'Segoe UI Emoji', 'Apple Color Emoji', sans-serif";
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
         ctx.fillText(item.emoji, item.x, item.y + bob + 1);
-        ctx.font = "bold 10px system-ui, sans-serif";
-        ctx.fillStyle = "#2B2333";
+        ctx.font = "bold 16px system-ui, sans-serif";
         ctx.textBaseline = "alphabetic";
-        ctx.fillText(item.word, item.x, item.y + bob + 26);
+        ctx.lineWidth = 3;
+        ctx.strokeStyle = "rgba(255,255,255,0.9)";
+        ctx.strokeText(item.word, item.x, item.y + bob + 34);
+        ctx.fillStyle = "#2B2333";
+        ctx.fillText(item.word, item.x, item.y + bob + 34);
       }
 
       for (const en of lvl.enemies) {
@@ -412,9 +415,12 @@ export default function WordJumpKingdom() {
         ctx.arc(en.x + 10, en.y + 12, 4, 0, Math.PI * 2);
         ctx.arc(en.x + 20, en.y + 12, 4, 0, Math.PI * 2);
         ctx.fill();
-        ctx.fillStyle = "#2B2333";
-        ctx.font = "bold 11px system-ui, sans-serif";
+        ctx.font = "bold 15px system-ui, sans-serif";
         ctx.textAlign = "center";
+        ctx.lineWidth = 3;
+        ctx.strokeStyle = "rgba(255,255,255,0.9)";
+        ctx.strokeText(en.word, en.x + en.w / 2, en.y - 8);
+        ctx.fillStyle = "#2B2333";
         ctx.fillText(en.word, en.x + en.w / 2, en.y - 8);
       }
 
@@ -527,7 +533,7 @@ export default function WordJumpKingdom() {
     background: "#FFF3D6", border: "3px solid #2B2333", cursor: "pointer",
   };
   const optionBtnStyle = {
-    padding: "8px 20px", borderRadius: 999, fontWeight: 700, color: "#2B2333",
+    padding: "10px 22px", borderRadius: 999, fontWeight: 700, fontSize: 18, color: "#2B2333",
     background: "#FFF3D6", border: "3px solid #2B2333", cursor: "pointer",
   };
   const dpadBtnStyle = {
