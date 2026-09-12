@@ -1,5 +1,4 @@
 import { useRef, useEffect, useState, useCallback } from "react";
-import "./App.css"
 
 // ---------- Constants ----------
 const CANVAS_W = 800;
@@ -525,31 +524,42 @@ export default function WordJumpKingdom() {
   const pillStyle = (bg, color, border) => ({
     padding: "4px 12px", borderRadius: 999, fontSize: 14, fontWeight: 700, background: bg, color, border,
   });
+  const noCallout = {
+    touchAction: "manipulation",
+    WebkitTapHighlightColor: "transparent",
+    WebkitTouchCallout: "none",
+    WebkitUserSelect: "none",
+    userSelect: "none",
+  };
   const primaryBtnStyle = {
     padding: "12px 24px", borderRadius: 999, fontWeight: 700, color: "#fff",
     background: "#3AAFA9", border: "3px solid #2B2333", boxShadow: "4px 4px 0 rgba(0,0,0,0.3)", cursor: "pointer",
+    ...noCallout,
   };
   const secondaryBtnStyle = {
     padding: "12px 24px", borderRadius: 999, fontWeight: 700, color: "#2B2333",
     background: "#FFF3D6", border: "3px solid #2B2333", cursor: "pointer",
+    ...noCallout,
   };
   const optionBtnStyle = {
     padding: "10px 22px", borderRadius: 999, fontWeight: 700, fontSize: 18, color: "#2B2333",
     background: "#FFF3D6", border: "3px solid #2B2333", cursor: "pointer",
+    ...noCallout,
   };
   const dpadBtnStyle = {
     width: 56, height: 56, borderRadius: "50%", fontWeight: 700, fontSize: 20,
-    background: "#FFF3D6", border: "3px solid #2B2333", touchAction: "none",
-    WebkitTapHighlightColor: "transparent", userSelect: "none", cursor: "pointer",
+    background: "#FFF3D6", border: "3px solid #2B2333", cursor: "pointer",
+    touchAction: "none", ...noCallout,
   };
   const jumpBtnStyle = {
     width: 80, height: 56, borderRadius: 999, fontWeight: 700, color: "#fff",
-    background: "#3AAFA9", border: "3px solid #2B2333", touchAction: "none",
-    WebkitTapHighlightColor: "transparent", userSelect: "none", cursor: "pointer",
+    background: "#3AAFA9", border: "3px solid #2B2333", cursor: "pointer",
+    touchAction: "none", ...noCallout,
   };
+  const noContextMenu = (e) => e.preventDefault();
 
   return (
-    <div style={{ width: "100%", maxWidth: 768, margin: "0 auto", fontFamily: "system-ui, -apple-system, 'Segoe UI', sans-serif" }}>
+    <div onContextMenu={noContextMenu} style={{ width: "100%", maxWidth: 768, margin: "0 auto", fontFamily: "system-ui, -apple-system, 'Segoe UI', sans-serif", ...noCallout }}>
       <div style={{ marginBottom: 12, textAlign: "center" }}>
         <h1 style={{ fontSize: 28, fontWeight: 800, color: "#2B2333", margin: 0 }}>Word Jump Kingdom</h1>
         <p style={{ fontSize: 14, color: "#5B5566", margin: "4px 0 0" }}>3 worlds · 9 levels · a castle quiz at the end of every one</p>
@@ -606,12 +616,14 @@ export default function WordJumpKingdom() {
                         key={key}
                         disabled={!unlocked}
                         onClick={() => loadLevel(wi, li)}
+                        onContextMenu={noContextMenu}
                         style={{
                           width: 56, height: 56, borderRadius: "50%", fontWeight: 700,
                           display: "flex", alignItems: "center", justifyContent: "center",
                           background: done ? "#F2C744" : unlocked ? "#FFF3D6" : "#5B5566",
                           color: "#2B2333", border: "3px solid #2B2333",
                           opacity: unlocked ? 1 : 0.6, cursor: unlocked ? "pointer" : "not-allowed",
+                          ...noCallout,
                         }}
                       >
                         {done ? "⭐" : unlocked ? `${wi + 1}-${li + 1}` : "🔒"}
@@ -632,7 +644,7 @@ export default function WordJumpKingdom() {
             <p style={{ color: "#fff", fontWeight: 700, margin: 0 }}>Which word matches this picture?</p>
             <div style={{ display: "flex", flexWrap: "wrap", gap: 8, justifyContent: "center" }}>
               {quiz.options.map((opt) => (
-                <button key={opt} onClick={() => answerQuiz(opt)} style={optionBtnStyle}>{opt}</button>
+                <button key={opt} onClick={() => answerQuiz(opt)} onContextMenu={noContextMenu} style={optionBtnStyle}>{opt}</button>
               ))}
             </div>
             {quizFeedback && <p style={{ color: "#fff", fontSize: 14, margin: 0 }}>{quizFeedback}</p>}
@@ -682,10 +694,10 @@ export default function WordJumpKingdom() {
 
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 16, maxWidth: 768, marginLeft: "auto", marginRight: "auto", padding: "0 8px" }}>
         <div style={{ display: "flex", gap: 8 }}>
-          <button onPointerDown={press("left")} onPointerUp={release("left")} onPointerLeave={release("left")} onPointerCancel={release("left")} style={dpadBtnStyle}>◀</button>
-          <button onPointerDown={press("right")} onPointerUp={release("right")} onPointerLeave={release("right")} onPointerCancel={release("right")} style={dpadBtnStyle}>▶</button>
+          <button onPointerDown={press("left")} onPointerUp={release("left")} onPointerLeave={release("left")} onPointerCancel={release("left")} onContextMenu={noContextMenu} style={dpadBtnStyle}>◀</button>
+          <button onPointerDown={press("right")} onPointerUp={release("right")} onPointerLeave={release("right")} onPointerCancel={release("right")} onContextMenu={noContextMenu} style={dpadBtnStyle}>▶</button>
         </div>
-        <button onPointerDown={press("jump")} onPointerUp={release("jump")} onPointerLeave={release("jump")} onPointerCancel={release("jump")} style={jumpBtnStyle}>JUMP</button>
+        <button onPointerDown={press("jump")} onPointerUp={release("jump")} onPointerLeave={release("jump")} onPointerCancel={release("jump")} onContextMenu={noContextMenu} style={jumpBtnStyle}>JUMP</button>
       </div>
 
       {wordsLearned.length > 0 && status !== "start" && status !== "map" && (
