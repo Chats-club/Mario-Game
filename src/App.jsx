@@ -11,7 +11,7 @@ const FRICTION = 0.82;
 const MAX_FALL = 14;
 const PLAYER_W = 48;
 const PLAYER_H = 62;
-const LEVELS_PER_WORLD = 3;
+const LEVELS_PER_WORLD = 10;
 
 const WORLD_THEMES = [
   { name: "Animal Land", sky: ["#8FD3E8", "#C9F0D8"], ground: "#6FA85B" },
@@ -39,41 +39,54 @@ const ALL_VOCAB = [...ANIMAL_VOCAB, ...COLOR_VOCAB, ...NUMBER_VOCAB];
 
 const mkCoin = (x, y, emoji, word) => ({ x, y, emoji, word, trap: false, collected: false });
 const mkTrap = (x, y, emoji, word) => ({ x, y, emoji, word, trap: true, collected: false });
-const mkEnemy = (x, minX, maxX, word) => ({ x, minX, maxX, y: 530, dir: 1, alive: true, word, w: 30, h: 30 });
+const mkEnemy = (x, minX, maxX, word, speed = 1.4) => ({ x, minX, maxX, y: 530, dir: 1, alive: true, word, w: 30, h: 30, speed });
 
 // Procedurally build one of the 9 levels. Later levels in a world get a pit,
 // more trap coins, and more enemies, so difficulty ramps up like real Mario worlds.
 function buildLevel(worldIdx, levelIdx) {
-  const vocab = WORLD_VOCAB[worldIdx].slice(levelIdx * 3, levelIdx * 3 + 3);
+  const vocabGroup = levelIdx % 3;
+  const vocab = WORLD_VOCAB[worldIdx].slice(vocabGroup * 3, vocabGroup * 3 + 3);
   const otherPool = ALL_VOCAB.filter((v) => !vocab.includes(v));
   const width = 1750;
+  const d = Math.min(levelIdx, 9); // difficulty index, capped
 
-  const pits = levelIdx > 0 ? [{ start: 900, end: 900 + 80 + levelIdx * 20 }] : [];
+  // Pits: none at first, one pit for a while, two once things get serious.
+  const pitWidth = 90 + d * 8;
+  const pits =
+    levelIdx === 0 ? [] :
+    levelIdx < 5 ? [{ start: 900, end: 900 + pitWidth }] :
+    [{ start: 750, end: 750 + pitWidth }, { start: 1350, end: 1350 + Math.round(pitWidth * 0.8) }];
 
+  // Platforms shrink (capped) as levels progress, so landings need more precision.
+  const shrink = Math.min(levelIdx, 6) * 8;
   const platforms = [
-    { x: 300, y: 480 - levelIdx * 10, w: 110, h: 20 },
-    { x: 780, y: 435 - levelIdx * 15, w: 100, h: 20 },
-    { x: 1280, y: 470 - levelIdx * 10, w: 120, h: 20 },
+    { x: 300, y: 480 - Math.min(levelIdx, 6) * 6, w: Math.max(110 - shrink, 55), h: 20 },
+    { x: 780, y: 435 - Math.min(levelIdx, 6) * 9, w: Math.max(100 - shrink, 50), h: 20 },
+    { x: 1280, y: 470 - Math.min(levelIdx, 6) * 6, w: Math.max(120 - shrink, 60), h: 20 },
   ];
 
   const coins = [
     mkCoin(200, 530, vocab[0].emoji, vocab[0].word),
-    mkCoin(platforms[1].x + 30, platforms[1].y - 25, vocab[1].emoji, vocab[1].word),
-    mkCoin(platforms[2].x + 40, platforms[2].y - 25, vocab[2].emoji, vocab[2].word),
+    mkCoin(platforms[1].x + 25, platforms[1].y - 25, vocab[1].emoji, vocab[1].word),
+    mkCoin(platforms[2].x + 30, platforms[2].y - 25, vocab[2].emoji, vocab[2].word),
   ];
 
+  const trapCount = Math.min(1 + Math.floor(levelIdx / 3), 4);
   const traps = [];
-  for (let i = 0; i <= levelIdx; i++) {
+  for (let i = 0; i < trapCount; i++) {
     const pic = vocab[i % vocab.length];
     const wrongLabel = vocab[(i + 1) % vocab.length].word;
-    traps.push(mkTrap(520 + i * 420, 530, pic.emoji, wrongLabel));
+    const tx = Math.round(480 + i * ((width - 700) / Math.max(trapCount - 1, 1)));
+    traps.push(mkTrap(tx, 530, pic.emoji, wrongLabel));
   }
 
+  const enemyCount = Math.min(1 + Math.floor(levelIdx / 2), 5);
+  const enemySpeed = 1.4 + d * 0.35;
   const enemies = [];
-  for (let i = 0; i <= levelIdx; i++) {
+  for (let i = 0; i < enemyCount; i++) {
     const label = otherPool[(i + worldIdx + levelIdx * 3) % otherPool.length].word;
-    const ex = 650 + i * 430;
-    enemies.push(mkEnemy(ex, ex - 90, ex + 90, label));
+    const ex = Math.round(600 + i * ((width - 950) / Math.max(enemyCount - 1, 1)));
+    enemies.push(mkEnemy(ex, ex - 90, ex + 90, label, enemySpeed));
   }
 
   return { width, pits, platforms, coins, traps, enemies, castleX: width - 90, vocab };
@@ -298,7 +311,7 @@ export default function WordJumpKingdom() {
 
       for (const en of lvl.enemies) {
         if (!en.alive) continue;
-        en.x += en.dir * 1.4 * dt;
+        en.x += en.dir * en.speed * dt;
         if (en.x < en.minX || en.x > en.maxX) en.dir *= -1;
         const overlapX = p.x + PLAYER_W > en.x && p.x < en.x + en.w;
         const overlapY = p.y + PLAYER_H > en.y && p.y < en.y + en.h;
@@ -562,7 +575,7 @@ export default function WordJumpKingdom() {
     <div onContextMenu={noContextMenu} style={{ width: "100%", maxWidth: 768, margin: "0 auto", fontFamily: "system-ui, -apple-system, 'Segoe UI', sans-serif", ...noCallout }}>
       <div style={{ marginBottom: 12, textAlign: "center" }}>
         <h1 style={{ fontSize: 28, fontWeight: 800, color: "#2B2333", margin: 0 }}>Word Jump Kingdom</h1>
-        <p style={{ fontSize: 14, color: "#5B5566", margin: "4px 0 0" }}>3 worlds · 9 levels · a castle quiz at the end of every one</p>
+        <p style={{ fontSize: 14, color: "#5B5566", margin: "4px 0 0" }}>3 worlds · 30 levels · a castle quiz at the end of every one</p>
       </div>
 
       <div
@@ -593,7 +606,7 @@ export default function WordJumpKingdom() {
         {status === "start" && (
           <div style={overlayStyle("rgba(43,35,51,0.85)")}>
             <p style={{ fontSize: 24, margin: 0 }}>🏃‍♂️🐱🟥3️⃣🏰</p>
-            <p style={{ color: "#fff", fontWeight: 700, fontSize: 18, margin: 0 }}>3 worlds, 3 levels each, and a castle quiz to finish every level!</p>
+            <p style={{ color: "#fff", fontWeight: 700, fontSize: 18, margin: 0 }}>3 worlds, 10 levels each, and a castle quiz to finish every level!</p>
             <p style={{ color: "#fff", fontSize: 14, opacity: 0.8, margin: 0 }}>Read before you grab a coin — some show the wrong word for the picture.<br />Grab a wrong one and you lose a heart. Lose all 3 and it's game over.</p>
             <p style={{ color: "#fff", fontSize: 14, opacity: 0.8, margin: 0 }}>Arrow keys / A-D to move · Space or Up to jump<br />(or use the buttons below on a touch screen)</p>
             <button onClick={startGame} style={primaryBtnStyle}>Start playing</button>
@@ -601,13 +614,13 @@ export default function WordJumpKingdom() {
         )}
 
         {status === "map" && (
-          <div style={{ ...overlayStyle("rgba(43,35,51,0.92)"), overflowY: "auto", padding: "24px" }}>
+          <div style={{ ...overlayStyle("rgba(43,35,51,0.92)"), overflowY: "auto", padding: "20px 16px" }}>
             <p style={{ color: "#fff", fontWeight: 800, fontSize: 20, margin: 0 }}>World Map</p>
             {WORLD_THEMES.map((w, wi) => (
-              <div key={w.name} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
+              <div key={w.name} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6 }}>
                 <p style={{ color: "#fff", fontWeight: 700, fontSize: 14, margin: 0 }}>{w.name}</p>
-                <div style={{ display: "flex", gap: 12 }}>
-                  {[0, 1, 2].map((li) => {
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 8, justifyContent: "center", maxWidth: 320 }}>
+                  {Array.from({ length: LEVELS_PER_WORLD }, (_, li) => {
                     const key = levelKey(wi, li);
                     const done = completed.includes(key);
                     const unlocked = isUnlocked(wi, li, completed);
@@ -618,7 +631,7 @@ export default function WordJumpKingdom() {
                         onClick={() => loadLevel(wi, li)}
                         onContextMenu={noContextMenu}
                         style={{
-                          width: 56, height: 56, borderRadius: "50%", fontWeight: 700,
+                          width: 42, height: 42, borderRadius: "50%", fontWeight: 700, fontSize: 12,
                           display: "flex", alignItems: "center", justifyContent: "center",
                           background: done ? "#F2C744" : unlocked ? "#FFF3D6" : "#5B5566",
                           color: "#2B2333", border: "3px solid #2B2333",
