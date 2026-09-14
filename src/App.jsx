@@ -126,6 +126,104 @@ export default function WordJumpKingdom() {
   const [quizFeedback, setQuizFeedback] = useState("");
   const [completed, setCompleted] = useState([]); // array of "w-l" keys
   const [currentPos, setCurrentPos] = useState({ world: 0, level: 0 });
+  const [muted, setMuted] = useState(false);
+
+  // ---------- audio engine (Web Audio API, no external files) ----------
+  const audioCtxRef = useRef(null);
+  const masterGainRef = useRef(null);
+  const musicTimeoutRef = useRef(null);
+  const musicStepRef = useRef(0);
+  const mutedRef = useRef(false);
+
+  const ensureAudio = useCallback(() => {
+    if (!audioCtxRef.current) {
+      const Ctx = window.AudioContext || window.webkitAudioContext;
+      if (!Ctx) return;
+      const ctx = new Ctx();
+      const master = ctx.createGain();
+      master.gain.value = mutedRef.current ? 0 : 0.6;
+      master.connect(ctx.destination);
+      audioCtxRef.current = ctx;
+      masterGainRef.current = master;
+      startMusicRef.current();
+    } else if (audioCtxRef.current.state === "suspended") {
+      audioCtxRef.current.resume();
+    }
+  }, []);
+
+  const playTone = useCallback((freq, dur, type = "sine", vol = 0.22, freqEnd = null, delay = 0) => {
+    const ctx = audioCtxRef.current;
+    const master = masterGainRef.current;
+    if (!ctx || !master) return;
+    const t0 = ctx.currentTime + delay;
+    const osc = ctx.createOscillator();
+    osc.type = type;
+    osc.frequency.setValueAtTime(freq, t0);
+    if (freqEnd) osc.frequency.exponentialRampToValueAtTime(Math.max(freqEnd, 1), t0 + dur);
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0.0001, t0);
+    g.gain.exponentialRampToValueAtTime(vol, t0 + 0.01);
+    g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+    osc.connect(g);
+    g.connect(master);
+    osc.start(t0);
+    osc.stop(t0 + dur + 0.02);
+  }, []);
+
+  const sfxJump = useCallback(() => playTone(380, 0.12, "square", 0.14, 700), [playTone]);
+  const sfxCoin = useCallback(() => { playTone(880, 0.08, "sine", 0.2); playTone(1320, 0.1, "sine", 0.18, null, 0.08); }, [playTone]);
+  const sfxWrong = useCallback(() => playTone(180, 0.22, "sawtooth", 0.18, 100), [playTone]);
+  const sfxStomp = useCallback(() => playTone(480, 0.09, "square", 0.2, 140), [playTone]);
+  const sfxHurt = useCallback(() => playTone(300, 0.25, "sawtooth", 0.18, 80), [playTone]);
+  const sfxCorrect = useCallback(() => {
+    [523.25, 659.25, 784].forEach((f, i) => playTone(f, 0.14, "triangle", 0.2, null, i * 0.1));
+  }, [playTone]);
+  const sfxFanfare = useCallback(() => {
+    [523.25, 659.25, 784, 1046.5].forEach((f, i) => playTone(f, 0.18, "triangle", 0.22, null, i * 0.12));
+  }, [playTone]);
+  const sfxGrandFanfare = useCallback(() => {
+    [523.25, 659.25, 784, 1046.5, 784, 1046.5, 1318.5].forEach((f, i) => playTone(f, 0.2, "triangle", 0.24, null, i * 0.13));
+  }, [playTone]);
+  const sfxGameOver = useCallback(() => {
+    [400, 320, 240, 160].forEach((f, i) => playTone(f, 0.22, "sawtooth", 0.18, null, i * 0.15));
+  }, [playTone]);
+  const sfxClick = useCallback(() => playTone(600, 0.05, "square", 0.1), [playTone]);
+
+  // Original bouncy call-and-response tune (not based on any existing song).
+  const MUSIC_PATTERN = [
+    [659.25, 0.18], [659.25, 0.18], [783.99, 0.3], [659.25, 0.18], [523.25, 0.18], [587.33, 0.18], [659.25, 0.34],
+    [698.46, 0.18], [698.46, 0.18], [880.0, 0.3], [698.46, 0.18], [587.33, 0.18], [659.25, 0.18], [698.46, 0.34],
+    [783.99, 0.22], [659.25, 0.22], [523.25, 0.4],
+  ];
+  const startMusicRef = useRef(() => {});
+  startMusicRef.current = () => {
+    const step = () => {
+      if (mutedRef.current || !audioCtxRef.current) {
+        musicTimeoutRef.current = setTimeout(step, 250);
+        return;
+      }
+      const [freq, dur] = MUSIC_PATTERN[musicStepRef.current % MUSIC_PATTERN.length];
+      playTone(freq, dur * 0.92, "triangle", 0.05);
+      musicStepRef.current += 1;
+      musicTimeoutRef.current = setTimeout(step, dur * 1000);
+    };
+    step();
+  };
+
+  useEffect(() => () => {
+    if (musicTimeoutRef.current) clearTimeout(musicTimeoutRef.current);
+    if (audioCtxRef.current) audioCtxRef.current.close();
+  }, []);
+
+  const toggleMute = useCallback(() => {
+    setMuted((prev) => {
+      const next = !prev;
+      mutedRef.current = next;
+      if (masterGainRef.current) masterGainRef.current.gain.value = next ? 0 : 0.6;
+      return next;
+    });
+  }, []);
+
 
   const showToast = useCallback((msg) => {
     setToast(msg);
@@ -140,6 +238,8 @@ export default function WordJumpKingdom() {
   }, []);
 
   const loadLevel = useCallback((w, l) => {
+    ensureAudio();
+    sfxClick();
     const lvl = buildLevel(w, l);
     levelRef.current = lvl;
     currentPosRef.current = { world: w, level: l };
@@ -151,26 +251,30 @@ export default function WordJumpKingdom() {
     statusRef.current = "playing";
     setStatus("playing");
     showToast(`${WORLD_THEMES[w].name} — Level ${w + 1}-${l + 1}`);
-  }, [showToast]);
+  }, [showToast, ensureAudio, sfxClick]);
 
   const startGame = useCallback(() => {
+    ensureAudio();
+    sfxClick();
     scoreRef.current = 0;
     setScore(0);
     setWordsLearned([]);
     setCompleted([]);
     statusRef.current = "map";
     setStatus("map");
-  }, []);
+  }, [ensureAudio, sfxClick]);
 
   const backToMap = useCallback(() => {
+    sfxClick();
     statusRef.current = "map";
     setStatus("map");
-  }, []);
+  }, [sfxClick]);
 
   const retryLevel = useCallback(() => {
+    sfxClick();
     const { world, level } = currentPosRef.current;
     loadLevel(world, level);
-  }, [loadLevel]);
+  }, [loadLevel, sfxClick]);
 
   const loseLife = useCallback((teleport) => {
     livesRef.current -= 1;
@@ -178,6 +282,7 @@ export default function WordJumpKingdom() {
     if (livesRef.current <= 0) {
       statusRef.current = "lost";
       setStatus("lost");
+      sfxGameOver();
       return;
     }
     if (teleport) {
@@ -187,7 +292,7 @@ export default function WordJumpKingdom() {
       playerRef.current.vy = 0;
     }
     playerRef.current.invuln = 90;
-  }, []);
+  }, [sfxGameOver]);
 
   const collectWord = useCallback((word) => {
     setWordsLearned((prev) => (prev.includes(word) ? prev : [...prev, word]));
@@ -204,13 +309,36 @@ export default function WordJumpKingdom() {
     if (isLastLevelOfWorld && isLastWorld) {
       statusRef.current = "gameComplete";
       setStatus("gameComplete");
+      sfxGrandFanfare();
     } else if (isLastLevelOfWorld) {
       statusRef.current = "worldComplete";
       setStatus("worldComplete");
+      sfxFanfare();
     } else {
       statusRef.current = "levelComplete";
       setStatus("levelComplete");
+      sfxCorrect();
     }
+  }, [sfxGrandFanfare, sfxFanfare, sfxCorrect]);
+
+  // ---------- block native double-tap / pinch zoom (iOS can ignore the viewport meta tag) ----------
+  useEffect(() => {
+    let lastTouchEnd = 0;
+    const blockDoubleTapZoom = (e) => {
+      const now = Date.now();
+      if (now - lastTouchEnd <= 350) e.preventDefault();
+      lastTouchEnd = now;
+    };
+    const blockPinchZoom = (e) => {
+      if (e.touches && e.touches.length > 1) e.preventDefault();
+    };
+    document.addEventListener("touchend", blockDoubleTapZoom, { passive: false });
+    document.addEventListener("touchmove", blockPinchZoom, { passive: false });
+    document.addEventListener("gesturestart", (e) => e.preventDefault());
+    return () => {
+      document.removeEventListener("touchend", blockDoubleTapZoom);
+      document.removeEventListener("touchmove", blockPinchZoom);
+    };
   }, []);
 
   // ---------- input ----------
@@ -251,7 +379,7 @@ export default function WordJumpKingdom() {
       p.vx = Math.max(-MOVE_SPEED, Math.min(MOVE_SPEED, p.vx));
       if (Math.abs(p.vx) > 0.3) p.anim += dt * 0.3;
 
-      if (k.jump && p.onGround) { p.vy = JUMP_VELOCITY; p.onGround = false; }
+      if (k.jump && p.onGround) { p.vy = JUMP_VELOCITY; p.onGround = false; sfxJump(); }
 
       p.vy += GRAVITY * dt;
       if (p.vy > MAX_FALL) p.vy = MAX_FALL;
@@ -294,6 +422,7 @@ export default function WordJumpKingdom() {
           setScore(scoreRef.current);
           collectWord(coin.word);
           showToast(`You found: ${coin.emoji} ${coin.word}`);
+          sfxCoin();
         }
       }
       for (const trap of lvl.traps) {
@@ -305,6 +434,7 @@ export default function WordJumpKingdom() {
           scoreRef.current = Math.max(0, scoreRef.current - 5);
           setScore(scoreRef.current);
           showToast(`Oops! That's not "${trap.word}" — you lost a heart!`);
+          sfxWrong();
           loseLife(false);
         }
       }
@@ -323,8 +453,10 @@ export default function WordJumpKingdom() {
             scoreRef.current += 20;
             setScore(scoreRef.current);
             showToast(`Squashed! That silly monster said "${en.word}" — wrong here!`);
+            sfxStomp();
           } else {
             p.vx = p.facing === 1 ? -4 : 4;
+            sfxHurt();
             loseLife(false);
           }
         }
@@ -510,7 +642,7 @@ export default function WordJumpKingdom() {
     };
     rafRef.current = requestAnimationFrame(loop);
     return () => cancelAnimationFrame(rafRef.current);
-  }, [loseLife, collectWord, showToast]);
+  }, [loseLife, collectWord, showToast, sfxJump, sfxCoin, sfxWrong, sfxStomp, sfxHurt]);
 
   const answerQuiz = (word) => {
     if (!quiz) return;
@@ -518,12 +650,23 @@ export default function WordJumpKingdom() {
       setQuiz(null);
       completeLevel();
     } else {
+      sfxWrong();
       setQuizFeedback("Not quite — give it another try!");
     }
   };
 
-  const press = (dir) => (e) => { e.preventDefault(); e.currentTarget.setPointerCapture?.(e.pointerId); keysRef.current[dir] = true; };
-  const release = (dir) => (e) => { e.preventDefault(); keysRef.current[dir] = false; };
+  const [pressedBtns, setPressedBtns] = useState({ left: false, right: false, jump: false });
+  const press = (dir) => (e) => {
+    e.preventDefault();
+    e.currentTarget.setPointerCapture?.(e.pointerId);
+    keysRef.current[dir] = true;
+    setPressedBtns((p) => ({ ...p, [dir]: true }));
+  };
+  const release = (dir) => (e) => {
+    e.preventDefault();
+    keysRef.current[dir] = false;
+    setPressedBtns((p) => ({ ...p, [dir]: false }));
+  };
 
   const { world: curW, level: curL } = currentPos;
 
@@ -559,23 +702,41 @@ export default function WordJumpKingdom() {
     background: "#FFF3D6", border: "3px solid #2B2333", cursor: "pointer",
     ...noCallout,
   };
-  const dpadBtnStyle = {
+  const dpadStyle = (pressed) => ({
     width: 56, height: 56, borderRadius: "50%", fontWeight: 700, fontSize: 20,
     background: "#FFF3D6", border: "3px solid #2B2333", cursor: "pointer",
     touchAction: "none", ...noCallout,
-  };
-  const jumpBtnStyle = {
+    boxShadow: pressed ? "0 2px 0 #C9A552, inset 0 -2px 4px rgba(0,0,0,0.15)" : "0 6px 0 #C9A552, inset 0 2px 2px rgba(255,255,255,0.6)",
+    transform: pressed ? "translateY(4px)" : "translateY(0)",
+    transition: "transform 0.05s ease, box-shadow 0.05s ease",
+  });
+  const jumpStyle = (pressed) => ({
     width: 80, height: 56, borderRadius: 999, fontWeight: 700, color: "#fff",
     background: "#3AAFA9", border: "3px solid #2B2333", cursor: "pointer",
     touchAction: "none", ...noCallout,
-  };
+    boxShadow: pressed ? "0 2px 0 #1F726D, inset 0 -2px 4px rgba(0,0,0,0.2)" : "0 6px 0 #1F726D, inset 0 2px 2px rgba(255,255,255,0.4)",
+    transform: pressed ? "translateY(4px)" : "translateY(0)",
+    transition: "transform 0.05s ease, box-shadow 0.05s ease",
+  });
   const noContextMenu = (e) => e.preventDefault();
 
   return (
     <div onContextMenu={noContextMenu} style={{ width: "100%", maxWidth: 768, margin: "0 auto", fontFamily: "system-ui, -apple-system, 'Segoe UI', sans-serif", ...noCallout }}>
-      <div style={{ marginBottom: 12, textAlign: "center" }}>
+      <div style={{ marginBottom: 12, textAlign: "center", position: "relative" }}>
         <h1 style={{ fontSize: 28, fontWeight: 800, color: "#2B2333", margin: 0 }}>Word Jump Kingdom</h1>
         <p style={{ fontSize: 14, color: "#5B5566", margin: "4px 0 0" }}>3 worlds · 30 levels · a castle quiz at the end of every one</p>
+        <button
+          onClick={toggleMute}
+          onContextMenu={noContextMenu}
+          aria-label={muted ? "Unmute" : "Mute"}
+          style={{
+            position: "absolute", top: 0, right: 0, width: 36, height: 36, borderRadius: "50%",
+            background: "#FFF3D6", border: "2px solid #2B2333", cursor: "pointer", fontSize: 16,
+            display: "flex", alignItems: "center", justifyContent: "center", ...noCallout,
+          }}
+        >
+          {muted ? "🔇" : "🔊"}
+        </button>
       </div>
 
       <div
@@ -707,10 +868,10 @@ export default function WordJumpKingdom() {
 
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 16, maxWidth: 768, marginLeft: "auto", marginRight: "auto", padding: "0 8px" }}>
         <div style={{ display: "flex", gap: 8 }}>
-          <button onPointerDown={press("left")} onPointerUp={release("left")} onPointerLeave={release("left")} onPointerCancel={release("left")} onContextMenu={noContextMenu} style={dpadBtnStyle}>◀</button>
-          <button onPointerDown={press("right")} onPointerUp={release("right")} onPointerLeave={release("right")} onPointerCancel={release("right")} onContextMenu={noContextMenu} style={dpadBtnStyle}>▶</button>
+          <button onPointerDown={press("left")} onPointerUp={release("left")} onPointerLeave={release("left")} onPointerCancel={release("left")} onContextMenu={noContextMenu} style={dpadStyle(pressedBtns.left)}>◀</button>
+          <button onPointerDown={press("right")} onPointerUp={release("right")} onPointerLeave={release("right")} onPointerCancel={release("right")} onContextMenu={noContextMenu} style={dpadStyle(pressedBtns.right)}>▶</button>
         </div>
-        <button onPointerDown={press("jump")} onPointerUp={release("jump")} onPointerLeave={release("jump")} onPointerCancel={release("jump")} onContextMenu={noContextMenu} style={jumpBtnStyle}>JUMP</button>
+        <button onPointerDown={press("jump")} onPointerUp={release("jump")} onPointerLeave={release("jump")} onPointerCancel={release("jump")} onContextMenu={noContextMenu} style={jumpStyle(pressedBtns.jump)}>JUMP</button>
       </div>
 
       {wordsLearned.length > 0 && status !== "start" && status !== "map" && (
